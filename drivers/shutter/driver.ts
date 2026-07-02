@@ -1,4 +1,4 @@
-import { Thermostat } from '../../lib';
+import { Shutter } from '../../lib/Shutter';
 import Homey from 'homey';
 import MyApp from '../../app';
 class MyDriver extends Homey.Driver {
@@ -17,7 +17,7 @@ class MyDriver extends Homey.Driver {
    */
   async onPairListDevices () {
     let client = (this.homey.app as MyApp).getClient();
-    return ((client?.devices || [])?.filter(device => device instanceof Thermostat) as Thermostat[])?.map((device: Thermostat) => {
+    return ((client?.devices || [])?.filter(device => device instanceof Shutter) as Shutter[])?.map((device: Shutter) => {
       if (device?.id && device?.channel) {
         return {
           name: 'F@H ' + device.name,

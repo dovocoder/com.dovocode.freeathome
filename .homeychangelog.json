@@ -7,5 +7,8 @@
   },
   "1.0.2": {
     "en": "Docs"
+  },
+  "2.0.0": {
+    "en": "Major update: Added Dimmer, Shutter, Blind, Movement Sensor, and Window/Door Sensor drivers. Bumped compatibility to Homey 8.0+. Migrated device imports from @dominicvonk/fah to local lib classes."
   }
 }

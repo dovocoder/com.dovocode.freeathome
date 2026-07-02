@@ -1,6 +1,6 @@
-import { Thermostat } from '../../lib';
 import Homey from 'homey';
 import MyApp from '../../app';
+import { ContactSensor } from '../../lib/ContactSensor';
 
 class MyDevice extends Homey.Device {
 
@@ -8,45 +8,24 @@ class MyDevice extends Homey.Device {
    * onInit is called when the device is initialized.
    */
   async onInit () {
-    this.log('MyDevice has been initialized');
+    let contactSensor: ContactSensor = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as ContactSensor)!;
 
-    let thermostat: Thermostat = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as Thermostat)!;
+    this.log(this.getName() + ' initialized');
 
+    let isOpen = contactSensor.isOpen();
+    this.setCapabilityValue("alarm_contact", isOpen);
 
-    this.setCapabilityValue("onoff", thermostat.getHeatingEnabled());
-    this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
-    this.registerCapabilityListener("onoff", async (value) => {
-      if (value) {
-        await thermostat.enableAutoHeating();
-      } else {
-        await thermostat.disableHeating();
-      }
-    });
-    this.registerCapabilityListener("target_temperature", async (value) => {
-      await thermostat.setTargetTemperature(value);
-    });
-
-
-    thermostat.on(Thermostat.HEATING_TURNED_ON, () => {
-      this.setCapabilityValue("onoff", true);
+    contactSensor.on(ContactSensor.OPENED, () => {
+      this.log(this.getName() + ' opened');
+      this.setCapabilityValue("alarm_contact", true);
     })
 
-    thermostat.on(Thermostat.HEATING_TURNED_OFF, () => {
-      this.setCapabilityValue("onoff", false);
+    contactSensor.on(ContactSensor.CLOSED, () => {
+      this.log(this.getName() + ' closed');
+      this.setCapabilityValue("alarm_contact", false);
     })
-
-    thermostat.on(Thermostat.TARGET_TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
-    })
-
-    thermostat.on(Thermostat.TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    });
-
   }
+
   /**
    * onAdded is called when the user adds the device, called just after pairing.
    */

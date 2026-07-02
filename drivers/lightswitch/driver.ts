@@ -1,4 +1,4 @@
-import { Switch } from '@dominicvonk/fah/dist/Switch';
+import { Switch } from '../../lib';
 import Homey from 'homey';
 import MyApp from '../../app';
 class MyDriver extends Homey.Driver {

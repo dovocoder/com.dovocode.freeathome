@@ -1,4 +1,4 @@
-import { Client } from '@dominicvonk/fah';
+import { Client } from './lib';
 import Homey from 'homey';
 
 class MyApp extends Homey.App {
@@ -17,6 +17,7 @@ class MyApp extends Homey.App {
       try {
         await this._client.start();
       } catch (error) {
+        this.log('Failed to connect to free@home:', error);
       }
     }
 
@@ -32,7 +33,7 @@ class MyApp extends Homey.App {
     try {
       await this._client?.updateLogin(ip, username, password);
     } catch {
-
+      this.log('Failed to reconnect to free@home');
     }
   }
 

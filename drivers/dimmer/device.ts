@@ -1,6 +1,6 @@
-import { Thermostat } from '../../lib';
 import Homey from 'homey';
 import MyApp from '../../app';
+import { Dimmer } from '../../lib/Dimmer';
 
 class MyDevice extends Homey.Device {
 
@@ -8,45 +8,46 @@ class MyDevice extends Homey.Device {
    * onInit is called when the device is initialized.
    */
   async onInit () {
-    this.log('MyDevice has been initialized');
+    let dimmer: Dimmer = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as Dimmer)!;
 
-    let thermostat: Thermostat = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as Thermostat)!;
-
-
-    this.setCapabilityValue("onoff", thermostat.getHeatingEnabled());
-    this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
     this.registerCapabilityListener("onoff", async (value) => {
+      this.log(this.getName() + ' ' + value);
       if (value) {
-        await thermostat.enableAutoHeating();
-      } else {
-        await thermostat.disableHeating();
+        await dimmer.turnOn();
+      }
+      else {
+        await dimmer.turnOff();
       }
     });
-    this.registerCapabilityListener("target_temperature", async (value) => {
-      await thermostat.setTargetTemperature(value);
+
+    this.registerCapabilityListener("dim", async (value) => {
+      this.log(this.getName() + ' dim ' + value);
+      await dimmer.setBrightness(value);
     });
 
+    this.log(this.getName() + ' initialized');
+    let isOn = dimmer.isOn();
+    let brightness = dimmer.getBrightness();
 
-    thermostat.on(Thermostat.HEATING_TURNED_ON, () => {
+    this.setCapabilityValue("onoff", isOn);
+    this.setCapabilityValue("dim", brightness);
+
+    dimmer.on(Dimmer.TURNED_ON, () => {
+      this.log(this.getName() + ' on');
       this.setCapabilityValue("onoff", true);
     })
 
-    thermostat.on(Thermostat.HEATING_TURNED_OFF, () => {
+    dimmer.on(Dimmer.TURNED_OFF, () => {
+      this.log(this.getName() + ' off');
       this.setCapabilityValue("onoff", false);
     })
 
-    thermostat.on(Thermostat.TARGET_TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
+    dimmer.on(Dimmer.BRIGHTNESS_CHANGED, () => {
+      this.log(this.getName() + ' brightness changed');
+      this.setCapabilityValue("dim", dimmer.getBrightness());
     })
-
-    thermostat.on(Thermostat.TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    });
-
   }
+
   /**
    * onAdded is called when the user adds the device, called just after pairing.
    */

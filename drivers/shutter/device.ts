@@ -1,6 +1,6 @@
-import { Thermostat } from '../../lib';
 import Homey from 'homey';
 import MyApp from '../../app';
+import { Shutter } from '../../lib/Shutter';
 
 class MyDevice extends Homey.Device {
 
@@ -8,45 +8,53 @@ class MyDevice extends Homey.Device {
    * onInit is called when the device is initialized.
    */
   async onInit () {
-    this.log('MyDevice has been initialized');
+    let shutter: Shutter = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as Shutter)!;
 
-    let thermostat: Thermostat = (((this.homey.app as MyApp)._client?.devices?.find(e => e.id == this.getData().serialNumber && e.channel == this.getData().channel)) as Thermostat)!;
-
-
-    this.setCapabilityValue("onoff", thermostat.getHeatingEnabled());
-    this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
     this.registerCapabilityListener("onoff", async (value) => {
+      this.log(this.getName() + ' ' + value);
       if (value) {
-        await thermostat.enableAutoHeating();
-      } else {
-        await thermostat.disableHeating();
+        await shutter.open();
+      }
+      else {
+        await shutter.close();
       }
     });
-    this.registerCapabilityListener("target_temperature", async (value) => {
-      await thermostat.setTargetTemperature(value);
+
+    this.registerCapabilityListener("windowcoverings_state", async (value) => {
+      this.log(this.getName() + ' state ' + value);
+      if (value === 'up') {
+        await shutter.open();
+      } else if (value === 'down') {
+        await shutter.close();
+      } else {
+        await shutter.stop();
+      }
     });
 
+    this.log(this.getName() + ' initialized');
 
-    thermostat.on(Thermostat.HEATING_TURNED_ON, () => {
+    let isOn = !shutter.isClosed();
+    this.setCapabilityValue("onoff", isOn);
+    this.setCapabilityValue("windowcoverings_state", shutter.getState());
+
+    shutter.on(Shutter.OPENED, () => {
+      this.log(this.getName() + ' opened');
       this.setCapabilityValue("onoff", true);
+      this.setCapabilityValue("windowcoverings_state", 'up');
     })
 
-    thermostat.on(Thermostat.HEATING_TURNED_OFF, () => {
+    shutter.on(Shutter.CLOSED, () => {
+      this.log(this.getName() + ' closed');
       this.setCapabilityValue("onoff", false);
+      this.setCapabilityValue("windowcoverings_state", 'down');
     })
 
-    thermostat.on(Thermostat.TARGET_TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("target_temperature", thermostat.getTargetTemperature())
+    shutter.on(Shutter.STOPPED, () => {
+      this.log(this.getName() + ' stopped');
+      this.setCapabilityValue("windowcoverings_state", 'idle');
     })
-
-    thermostat.on(Thermostat.TEMPERATURE_CHANGED, () => {
-
-      this.setCapabilityValue("measure_temperature", thermostat.getCurrentTemperature())
-    });
-
   }
+
   /**
    * onAdded is called when the user adds the device, called just after pairing.
    */
